@@ -18,7 +18,7 @@ namespace Sherpa.Library.ContentTypes.Model
         public string Description { get; set; }
         public string Group { get; set; }
 
-        public List<ShTemplateInformation> Template { get; set; }
+        public ShTemplateInformation Template { get; set; }
 
         public List<string> Fields { get; set; }
         public List<string> RequiredFields { get; set; }

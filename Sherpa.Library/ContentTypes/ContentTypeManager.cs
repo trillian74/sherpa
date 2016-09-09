@@ -4,6 +4,7 @@ using Sherpa.Library.ContentTypes.Model;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -52,6 +53,9 @@ namespace Sherpa.Library.ContentTypes
                         existingContentType.Update(true);
                         ClientContext.ExecuteQuery();
                     }
+                    var template = contentType.Template;
+                    if (template != null)
+                        AddTemplateToContentType(contentType);
                 }
                 else
                 {
@@ -64,11 +68,13 @@ namespace Sherpa.Library.ContentTypes
                     newContentType.Name = contentType.DisplayName;
                     newContentType.Update(true);
                     ClientContext.ExecuteQuery();
+                    var template = contentType.Template;
+                    if (template != null)
+                        AddTemplateToContentType(contentType);
                 }
                 Log.Debug("Adding fields to existing content type " + contentType.DisplayName);
                 // We want to add fields even if the content type exists
                 AddSiteColumnsToContentType(contentType);
-                AddTemplateToContentType(contentType);
             }
         }
 
@@ -76,18 +82,45 @@ namespace Sherpa.Library.ContentTypes
         {
             Log.Debug("Attempting to add fields to content type " + configContentType.DisplayName);
             Web web = ClientContext.Web;
-            ContentTypeCollection contentTypes = web.ContentTypes;
-            ClientContext.Load(contentTypes);
-            // ClientContext.ExecuteQuery();
-            ContentType contentType = contentTypes.GetById(configContentType.ID);
-            ClientContext.Load(contentType);
+            //ContentTypeCollection contentTypes = web.ContentTypes;
+            //ClientContext.Load(contentTypes);
+            //// ClientContext.ExecuteQuery();
+            //ContentType contentType = contentTypes.GetById(configContentType.ID);
+            //ClientContext.Load(contentType);
+            //ClientContext.ExecuteQuery();
+
+            ContentType ct = web.ContentTypes.GetById(configContentType.ID);
+            ClientContext.Load(ct);
             ClientContext.ExecuteQuery();
 
-            Log.Debug(contentType.DisplayFormTemplateName);
-            Log.Debug(contentType.DocumentTemplate);
-            Log.Debug(contentType.DocumentTemplateUrl);
-            Log.Debug(contentType.EditFormTemplateName);
-            Log.Debug(contentType.EditFormTemplateName);
+            // Get instance to the _cts folder created for the each of the content types
+            string ctFolderServerRelativeURL = "_cts/" + configContentType.InternalName;
+            Folder ctFolder = web.GetFolderByServerRelativeUrl(ctFolderServerRelativeURL);
+            ClientContext.Load(ctFolder);
+            ClientContext.ExecuteQuery();
+
+            // Load the local template document
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, configContentType.Template.FileName);
+            string fileName = System.IO.Path.GetFileName(path);
+            byte[] filecontent = System.IO.File.ReadAllBytes(path);
+
+            // Uplaod file to the Office365
+            using (System.IO.FileStream fs = new System.IO.FileStream(path, System.IO.FileMode.Open))
+            {
+                FileCreationInformation newFile = new FileCreationInformation();
+                newFile.Content = filecontent;
+                newFile.Url = ctFolderServerRelativeURL + "/" + fileName;
+                newFile.Overwrite = true;
+
+                Microsoft.SharePoint.Client.File uploadedFile = ctFolder.Files.Add(newFile);
+                ClientContext.Load(uploadedFile);
+                ClientContext.ExecuteQuery();
+            }
+
+            ct.DocumentTemplate = fileName;
+            ct.Update(true);
+            ClientContext.ExecuteQuery();
+            Log.Debug("Document template uploaded and set to the content type.");
 
             //SetDocumentAsTemplate(cc, web, "0x010100293fde3fcada480b9a77bbdad7dfa28c0105", "template.docx", "BBProjectMeeting");
         }
