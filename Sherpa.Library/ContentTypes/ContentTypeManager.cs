@@ -1,11 +1,11 @@
-﻿using System;
+﻿using log4net;
+using Microsoft.SharePoint.Client;
+using Sherpa.Library.ContentTypes.Model;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using log4net;
-using Microsoft.SharePoint.Client;
-using Sherpa.Library.ContentTypes.Model;
 
 namespace Sherpa.Library.ContentTypes
 {
@@ -68,7 +68,28 @@ namespace Sherpa.Library.ContentTypes
                 Log.Debug("Adding fields to existing content type " + contentType.DisplayName);
                 // We want to add fields even if the content type exists
                 AddSiteColumnsToContentType(contentType);
+                AddTemplateToContentType(contentType);
             }
+        }
+
+        private void AddTemplateToContentType(ShContentType configContentType)
+        {
+            Log.Debug("Attempting to add fields to content type " + configContentType.DisplayName);
+            Web web = ClientContext.Web;
+            ContentTypeCollection contentTypes = web.ContentTypes;
+            ClientContext.Load(contentTypes);
+            // ClientContext.ExecuteQuery();
+            ContentType contentType = contentTypes.GetById(configContentType.ID);
+            ClientContext.Load(contentType);
+            ClientContext.ExecuteQuery();
+
+            Log.Debug(contentType.DisplayFormTemplateName);
+            Log.Debug(contentType.DocumentTemplate);
+            Log.Debug(contentType.DocumentTemplateUrl);
+            Log.Debug(contentType.EditFormTemplateName);
+            Log.Debug(contentType.EditFormTemplateName);
+
+            //SetDocumentAsTemplate(cc, web, "0x010100293fde3fcada480b9a77bbdad7dfa28c0105", "template.docx", "BBProjectMeeting");
         }
 
         private void AddSiteColumnsToContentType(ShContentType configContentType)
@@ -130,7 +151,7 @@ namespace Sherpa.Library.ContentTypes
             var fieldLink = contentTypeFields.FirstOrDefault(existingFieldName => existingFieldName.Name == fieldName);
             if (fieldLink == null)
             {
-                var link = new FieldLinkCreationInformation {Field = webField};
+                var link = new FieldLinkCreationInformation { Field = webField };
                 fieldLink = contentType.FieldLinks.Add(link);
             }
 
@@ -161,7 +182,6 @@ namespace Sherpa.Library.ContentTypes
             contentType.Update(true);
             ClientContext.ExecuteQuery();
         }
-
 
         public void DeleteAllCustomContentTypes()
         {

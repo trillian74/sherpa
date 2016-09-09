@@ -107,6 +107,7 @@
     <Compile Include="ContentTypes\Model\ShField.cs" />
     <Compile Include="ContentTypes\Model\ShFieldRefs.cs" />
     <Compile Include="ContentTypes\Model\ShResultType.cs" />
+    <Compile Include="ContentTypes\Model\ShTemplateInformation.cs" />
     <Compile Include="CustomTasks\CustomTasksManager.cs" />
     <Compile Include="CustomTasks\ICustomTasksManager.cs" />
     <Compile Include="Deploy\DeployManager.cs" />

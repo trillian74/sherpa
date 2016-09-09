@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using Microsoft.SharePoint.Client;
+﻿using Microsoft.SharePoint.Client;
+using System.Collections.Generic;
 
 namespace Sherpa.Library.ContentTypes.Model
 {
@@ -18,10 +18,12 @@ namespace Sherpa.Library.ContentTypes.Model
         public string Description { get; set; }
         public string Group { get; set; }
 
+        public List<ShTemplateInformation> Template { get; set; }
+
         public List<string> Fields { get; set; }
         public List<string> RequiredFields { get; set; }
         public List<string> HiddenFields { get; set; }
-        public List<string> RemovedFields { get; set; } 
+        public List<string> RemovedFields { get; set; }
 
         public ShContentType()
         {

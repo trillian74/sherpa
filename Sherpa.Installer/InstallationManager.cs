@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using log4net;
+﻿using log4net;
 using Microsoft.SharePoint.Client;
 using Sherpa.Library;
 using Sherpa.Library.ContentTypes;
@@ -15,6 +9,12 @@ using Sherpa.Library.SiteHierarchy;
 using Sherpa.Library.SiteHierarchy.Model;
 using Sherpa.Library.Taxonomy;
 using Sherpa.Library.Taxonomy.Model;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Reflection;
 using File = System.IO.File;
 
 namespace Sherpa.Installer
@@ -32,14 +32,17 @@ namespace Sherpa.Installer
         {
             get { return Path.Combine(_rootPath, "config"); }
         }
+
         private string SolutionsDirectoryPath
         {
             get { return Path.Combine(_rootPath, "solutions"); }
         }
+
         private string SearchDirectoryPath
         {
             get { return Path.Combine(_rootPath, "search"); }
         }
+
         private string ImportDataDirectoryPath
         {
             get { return Path.Combine(_rootPath, "importdata"); }
@@ -62,6 +65,7 @@ namespace Sherpa.Installer
                 Directory.GetFiles(rootDirectory, searchPattern, SearchOption.AllDirectories)
                     .FirstOrDefault();
         }
+
         public void InstallOperation(InstallationOperation installationOperation)
         {
             InstallOperation(installationOperation, string.Empty);
@@ -98,7 +102,7 @@ namespace Sherpa.Installer
                 }
             }
 
-            using (var context = new ClientContext(_urlToSite) {Credentials = _credentials})
+            using (var context = new ClientContext(_urlToSite) { Credentials = _credentials })
             {
                 var siteSetupManagerFromConfig = new SiteSetupManager(context, new ShSiteCollection(), _rootPath, _incrementalUpload);
                 if (useConfigurationForInstall)
@@ -109,136 +113,152 @@ namespace Sherpa.Installer
                 switch (installationOperation)
                 {
                     case InstallationOperation.InstallTaxonomy:
-                    {
-                        if (useConfigurationForInstall)
                         {
-                            foreach (var filename in siteSetupManagerFromConfig.ConfigurationSiteCollection.TaxonomyConfigurations)
+                            if (useConfigurationForInstall)
                             {
-                                InstallTaxonomyFromSingleFile(context,
-                                    FindFileInDirectory(ConfigurationDirectoryPath, filename));
+                                foreach (var filename in siteSetupManagerFromConfig.ConfigurationSiteCollection.TaxonomyConfigurations)
+                                {
+                                    InstallTaxonomyFromSingleFile(context,
+                                        FindFileInDirectory(ConfigurationDirectoryPath, filename));
+                                }
                             }
+                            else
+                            {
+                                InstallAllTaxonomy(context);
+                            }
+                            break;
                         }
-                        else
-                        {
-                            InstallAllTaxonomy(context);
-                        }
-                        break;
-                    }
                     case InstallationOperation.UploadAndActivateSolution:
-                    {
-                        if (useConfigurationForInstall)
                         {
-                            var deployManager = new DeployManager(_urlToSite, _credentials, _isSharePointOnline);
-                            foreach (var filename in siteSetupManagerFromConfig.ConfigurationSiteCollection.SandboxedSolutions)
+                            if (useConfigurationForInstall)
                             {
-                                UploadAndActivatePackage(context, deployManager,
-                                    FindFileInDirectory(SolutionsDirectoryPath, filename));
+                                var deployManager = new DeployManager(_urlToSite, _credentials, _isSharePointOnline);
+                                foreach (var filename in siteSetupManagerFromConfig.ConfigurationSiteCollection.SandboxedSolutions)
+                                {
+                                    UploadAndActivatePackage(context, deployManager,
+                                        FindFileInDirectory(SolutionsDirectoryPath, filename));
+                                }
                             }
+                            else
+                            {
+                                UploadAndActivateAllSandboxSolutions(context);
+                            }
+                            break;
                         }
-                        else
+                    case InstallationOperation.AddTemplatesToCts:
                         {
-                            UploadAndActivateAllSandboxSolutions(context);
+                            if (useConfigurationForInstall)
+                            {
+                                foreach (var fileName in siteSetupManagerFromConfig.ConfigurationSiteCollection.AddTemplatesToCts)
+                                {
+                                    var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
+                                    AddTemplatesToCts(context, filePath);
+                                }
+                            }
+                            else
+                            {
+                                AddTemplatesToCts(context, null);
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case InstallationOperation.InstallFieldsAndContentTypes:
-                    {
-                        if (useConfigurationForInstall)
                         {
-                            siteSetupManagerFromConfig.ActivateContentTypeDependencyFeatures();
-                            foreach (var fileName in siteSetupManagerFromConfig.ConfigurationSiteCollection.FieldConfigurations)
+                            if (useConfigurationForInstall)
                             {
-                                var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
-                                CreateFieldsFromFile(context, filePath);
+                                siteSetupManagerFromConfig.ActivateContentTypeDependencyFeatures();
+                                foreach (var fileName in siteSetupManagerFromConfig.ConfigurationSiteCollection.FieldConfigurations)
+                                {
+                                    var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
+                                    CreateFieldsFromFile(context, filePath);
+                                }
+                                foreach (var fileName in siteSetupManagerFromConfig.ConfigurationSiteCollection.ContentTypeConfigurations)
+                                {
+                                    var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
+                                    CreateContentTypesFromFile(context, filePath);
+                                }
                             }
-                            foreach (var fileName in siteSetupManagerFromConfig.ConfigurationSiteCollection.ContentTypeConfigurations)
+                            else
                             {
-                                var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
-                                CreateContentTypesFromFile(context, filePath);
+                                CreateAllSiteColumnsAndContentTypes(context);
                             }
+                            break;
                         }
-                        else
-                        {
-                            CreateAllSiteColumnsAndContentTypes(context);
-                        }
-                        break;
-                    }
                     case InstallationOperation.ConfigureSites:
-                    {
-                        if (useConfigurationForInstall)
                         {
-                            siteSetupManagerFromConfig.SetupSites();
+                            if (useConfigurationForInstall)
+                            {
+                                siteSetupManagerFromConfig.SetupSites();
+                            }
+                            else
+                            {
+                                ConfigureSitesFromAllSiteHierarchyFiles(context);
+                            }
+                            break;
                         }
-                        else
-                        {
-                            ConfigureSitesFromAllSiteHierarchyFiles(context);
-                        }
-                        break;
-                    }
                     case InstallationOperation.ImportSearch:
-                    {
-                        if (useConfigurationForInstall)
                         {
-                            var searchMan = new SearchImportManager();
-                            foreach (
-                                var fileName in
-                                    siteSetupManagerFromConfig.ConfigurationSiteCollection.SearchConfigurations)
+                            if (useConfigurationForInstall)
                             {
-                                try
+                                var searchMan = new SearchImportManager();
+                                foreach (
+                                    var fileName in
+                                        siteSetupManagerFromConfig.ConfigurationSiteCollection.SearchConfigurations)
                                 {
-                                    var pathToSearchSettingsFile = FindFileInDirectory(SearchDirectoryPath, fileName);
-                                    Log.Info("Importing search configuration in " + fileName);
-                                    searchMan.ImportSearchConfiguration(context, pathToSearchSettingsFile);
-                                }
-                                catch (Exception e)
-                                {
-                                    Log.Error("Could not import seach configuration.", e);
+                                    try
+                                    {
+                                        var pathToSearchSettingsFile = FindFileInDirectory(SearchDirectoryPath, fileName);
+                                        Log.Info("Importing search configuration in " + fileName);
+                                        searchMan.ImportSearchConfiguration(context, pathToSearchSettingsFile);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Log.Error("Could not import seach configuration.", e);
+                                    }
                                 }
                             }
+                            else
+                            {
+                                ImportAllSearchSettings(context);
+                            }
+                            break;
                         }
-                        else
-                        {
-                            ImportAllSearchSettings(context);
-                        }
-                        break;
-                    }
                     case InstallationOperation.ExecuteCustomTasks:
-                    {
-                        //TODO: Refactor and allow both convention and configuration
-                        var customTasksManager = new CustomTasksManager(_rootPath);
-                        customTasksManager.ExecuteTasks(siteSetupManagerFromConfig.ConfigurationSiteCollection.RootWeb, context);
-                        break;
-                    }
-                    case  InstallationOperation.DeleteSites:
-                    {
-                        TeardownSites();
-                        break;
-                    }
+                        {
+                            //TODO: Refactor and allow both convention and configuration
+                            var customTasksManager = new CustomTasksManager(_rootPath);
+                            customTasksManager.ExecuteTasks(siteSetupManagerFromConfig.ConfigurationSiteCollection.RootWeb, context);
+                            break;
+                        }
+                    case InstallationOperation.DeleteSites:
+                        {
+                            TeardownSites();
+                            break;
+                        }
                     case InstallationOperation.DeleteFieldsAndContentTypes:
-                    {
-                        if (useConfigurationForInstall)
                         {
-                            foreach (
-                                var fileName in
-                                    siteSetupManagerFromConfig.ConfigurationSiteCollection.ContentTypeConfigurations)
+                            if (useConfigurationForInstall)
                             {
-                                var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
-                                DeleteContentTypesSpecifiedInFile(context, filePath);
+                                foreach (
+                                    var fileName in
+                                        siteSetupManagerFromConfig.ConfigurationSiteCollection.ContentTypeConfigurations)
+                                {
+                                    var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
+                                    DeleteContentTypesSpecifiedInFile(context, filePath);
+                                }
+                                foreach (
+                                    var fileName in
+                                        siteSetupManagerFromConfig.ConfigurationSiteCollection.FieldConfigurations)
+                                {
+                                    var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
+                                    DeleteFieldsSpecifiedInFile(context, filePath);
+                                }
                             }
-                            foreach (
-                                var fileName in
-                                    siteSetupManagerFromConfig.ConfigurationSiteCollection.FieldConfigurations)
+                            else
                             {
-                                var filePath = FindFileInDirectory(ConfigurationDirectoryPath, fileName);
-                                DeleteFieldsSpecifiedInFile(context, filePath);
+                                DeleteAllSherpaSiteColumnsAndContentTypes(context);
                             }
+                            break;
                         }
-                        else
-                        {
-                            DeleteAllSherpaSiteColumnsAndContentTypes(context);
-                        }
-                        break;
-                    }
                     case InstallationOperation.FileWatchUploader:
                         {
                             if (useConfigurationForInstall)
@@ -252,17 +272,17 @@ namespace Sherpa.Installer
                             break;
                         }
                     case InstallationOperation.ExportTaxonomy:
-                    {
-                        ExportTaxonomyGroup();
-                        break;
-                    }
+                        {
+                            ExportTaxonomyGroup();
+                            break;
+                        }
                     case InstallationOperation.ExportData:
-                    {
-                        var outputDirectoryPath = Path.Combine(_rootPath, "export");
-                        Directory.CreateDirectory(outputDirectoryPath);
-                        siteSetupManagerFromConfig.ExportListData(outputDirectoryPath);
-                        break;
-                    }
+                        {
+                            var outputDirectoryPath = Path.Combine(_rootPath, "export");
+                            Directory.CreateDirectory(outputDirectoryPath);
+                            siteSetupManagerFromConfig.ExportListData(outputDirectoryPath);
+                            break;
+                        }
                     case InstallationOperation.ImportData:
                         {
                             foreach (var fileName in siteSetupManagerFromConfig.ConfigurationSiteCollection.ImportDataConfigurations)
@@ -273,23 +293,70 @@ namespace Sherpa.Installer
                             break;
                         }
                     case InstallationOperation.ForceRecrawl:
-                    {
-                        ForceReCrawl();
-                        break;
-                    }
+                        {
+                            ForceReCrawl();
+                            break;
+                        }
                     case InstallationOperation.ExitApplication:
-                    {
-                        Environment.Exit(1);
-                        break;
-                    }
+                        {
+                            Environment.Exit(1);
+                            break;
+                        }
                     default:
-                    {
-                        Log.Warn("Operation not supported in unmanaged mode");
-                        break;
-                    }
+                        {
+                            Log.Warn("Operation not supported in unmanaged mode");
+                            break;
+                        }
                 }
             }
             Log.Debug("Completed installation operation");
+        }
+
+        private static void SetDocumentAsTemplate(ClientContext cc, Web web, string ctsId, string ctsfilename, string InternalName)
+        {
+            ContentType ct = web.ContentTypes.GetById(ctsId);
+            cc.Load(ct);
+            cc.ExecuteQuery();
+
+            // Get instance to the _cts folder created for the each of the content types
+            string ctFolderServerRelativeURL = "_cts/" + InternalName;
+            Folder ctFolder = web.GetFolderByServerRelativeUrl(ctFolderServerRelativeURL);
+            cc.Load(ctFolder);
+            cc.ExecuteQuery();
+
+            // Load the local template document
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ctsfilename);
+            string fileName = System.IO.Path.GetFileName(path);
+            byte[] filecontent = System.IO.File.ReadAllBytes(path);
+
+            // Uplaod file to the Office365
+            using (System.IO.FileStream fs = new System.IO.FileStream(path, System.IO.FileMode.Open))
+            {
+                FileCreationInformation newFile = new FileCreationInformation();
+                newFile.Content = filecontent;
+                newFile.Url = ctFolderServerRelativeURL + "/" + fileName;
+                newFile.Overwrite = true;
+
+                Microsoft.SharePoint.Client.File uploadedFile = ctFolder.Files.Add(newFile);
+                cc.Load(uploadedFile);
+                cc.ExecuteQuery();
+            }
+
+            ct.DocumentTemplate = fileName;
+            ct.Update(true);
+            cc.ExecuteQuery();
+            Log.Debug("Document template uploaded and set to the content type.");
+        }
+
+        private void AddTemplatesToCts(ClientContext cc, string filePath)
+        {
+            Log.Debug("Starting AddTemplatesAndBindToCts");
+
+            //var contentTypePersister = new FilePersistanceProvider<List<ShContentType>>(filePath);
+            //var contentTypetemplateManager = new ContentTypeTemplateManager(cc, contentTypePersister.Load());
+            //contentTypetemplateManager.BindTemplates();
+
+            Log.Debug("Done AddTemplatesAndBindToCts");
         }
 
         private void ImportDataFromFile(ClientContext context, string filePath)
@@ -304,7 +371,8 @@ namespace Sherpa.Installer
                 var taskListData = new FilePersistanceProvider<ShTaskListData>(filePath);
                 importDataManager.ImportTaskListData(taskListData.Load());
             }
-            else {
+            else
+            {
                 importDataManager.ImportListData(listData);
             }
         }
@@ -315,7 +383,7 @@ namespace Sherpa.Installer
             foreach (var file in Directory.GetFiles(ConfigurationDirectoryPath, "*sitehierarchy.json", SearchOption.AllDirectories))
             {
                 var sitePersister = new FilePersistanceProvider<ShSiteCollection>(file);
-                
+
                 var siteManager = new SiteSetupManager(context, sitePersister.Load(), _rootPath, _incrementalUpload);
 
                 siteManager.StartFileWatching();
@@ -365,6 +433,7 @@ namespace Sherpa.Installer
                 }
             }
         }
+
         private void UploadAndActivateAllSandboxSolutions(ClientContext context)
         {
             Log.Info("Uploading and activating sandboxed solution(s)");
@@ -380,7 +449,7 @@ namespace Sherpa.Installer
             {
                 UploadAndActivatePackage(context, deployManager, file);
             }
-            
+
             Log.Info("Done uploading and activating sandboxed solution(s)");
         }
 
@@ -404,7 +473,7 @@ namespace Sherpa.Installer
             {
                 CreateContentTypesFromFile(context, filePath);
             }
-            
+
             Log.Info("Done setup of site columns and content types");
         }
 
@@ -446,7 +515,6 @@ namespace Sherpa.Installer
                     siteManager.SetupSites();
                 }
             }
-            
         }
 
         private void ImportAllSearchSettings(ClientContext context)
@@ -455,7 +523,8 @@ namespace Sherpa.Installer
             var pathToSearchXmls = Directory.GetFiles(SearchDirectoryPath);
             foreach (var pathToSearchXml in pathToSearchXmls)
             {
-                try { 
+                try
+                {
                     Log.Info("Importing search settings in file " + pathToSearchXml);
                     searchMan.ImportSearchConfiguration(context, pathToSearchXml);
                 }
@@ -522,65 +591,69 @@ namespace Sherpa.Installer
             switch (inputNum)
             {
                 case 1:
-                {
-                    return InstallationOperation.InstallTaxonomy;
-                }
+                    {
+                        return InstallationOperation.InstallTaxonomy;
+                    }
                 case 2:
-                {
-                    return InstallationOperation.UploadAndActivateSolution;
-                }
+                    {
+                        return InstallationOperation.UploadAndActivateSolution;
+                    }
                 case 3:
-                {
-                    return InstallationOperation.InstallFieldsAndContentTypes;
-                }
+                    {
+                        return InstallationOperation.InstallFieldsAndContentTypes;
+                    }
                 case 4:
-                {
-                    return InstallationOperation.ConfigureSites;
-                }
+                    {
+                        return InstallationOperation.ConfigureSites;
+                    }
                 case 5:
-                {
-                    return InstallationOperation.ImportSearch;
-                }
+                    {
+                        return InstallationOperation.ImportSearch;
+                    }
                 case 6:
-                {
-                    return InstallationOperation.ExportTaxonomy;
-                }
+                    {
+                        return InstallationOperation.ExportTaxonomy;
+                    }
                 case 7:
-                {
-                    return InstallationOperation.ExecuteCustomTasks;
-                }
+                    {
+                        return InstallationOperation.ExecuteCustomTasks;
+                    }
                 case 8:
-                {
-                    return InstallationOperation.ImportData;
-                }
+                    {
+                        return InstallationOperation.ImportData;
+                    }
                 case 20:
-                {
-                    return InstallationOperation.DeleteSites;
-                }
+                    {
+                        return InstallationOperation.DeleteSites;
+                    }
                 case 21:
-                {
-                    return InstallationOperation.DeleteFieldsAndContentTypes;
-                }
+                    {
+                        return InstallationOperation.DeleteFieldsAndContentTypes;
+                    }
+                case 30:
+                    {
+                        return InstallationOperation.AddTemplatesToCts;
+                    }
                 case 69:
-                {
-                    return InstallationOperation.ExportData;
-                }
+                    {
+                        return InstallationOperation.ExportData;
+                    }
                 case 1337:
-                {
-                    return InstallationOperation.ForceRecrawl;
-                }
+                    {
+                        return InstallationOperation.ForceRecrawl;
+                    }
                 case 666:
-                {
-                    return InstallationOperation.FileWatchUploader;
-                }
+                    {
+                        return InstallationOperation.FileWatchUploader;
+                    }
                 case 0:
-                {
-                    return InstallationOperation.ExitApplication;
-                }
+                    {
+                        return InstallationOperation.ExitApplication;
+                    }
                 default:
-                {
-                    return InstallationOperation.Invalid;
-                }
+                    {
+                        return InstallationOperation.Invalid;
+                    }
             }
         }
     }

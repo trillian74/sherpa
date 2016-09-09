@@ -13,6 +13,8 @@ namespace Sherpa.Library.SiteHierarchy.Model
         public string[] SandboxedSolutions { get; set; }
         public string[] FieldConfigurations { get; set; }
         public string[] ContentTypeConfigurations { get; set; }
+
+        public string[] AddTemplatesToCts { get; set; }
         public string[] TaxonomyConfigurations { get; set; }
         public string[] SearchConfigurations { get; set; }
         public string[] ImportDataConfigurations { get; set; }

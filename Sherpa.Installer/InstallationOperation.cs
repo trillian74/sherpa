@@ -18,6 +18,7 @@
         ExecuteCustomTasks,
         FileWatchUploader,
         ExportData,
-        ImportData
+        ImportData,
+        AddTemplatesToCts
     }
 }

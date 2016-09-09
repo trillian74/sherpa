@@ -1,13 +1,13 @@
-﻿using System;
+﻿using log4net;
+using log4net.Config;
+using System;
 using System.Linq;
 using System.Net;
 using System.Reflection;
-using log4net;
-using log4net.Config;
 
 namespace Sherpa.Installer
 {
-    class Program
+    internal class Program
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         public static ICredentials Credentials { get; set; }
@@ -16,7 +16,7 @@ namespace Sherpa.Installer
         private static Uri UrlToSite { get; set; }
         private static bool Unmanaged { get; set; }
 
-        static int Main(string[] args)
+        private static int Main(string[] args)
         {
             Console.ResetColor();
             XmlConfigurator.Configure(); //Initialize log4net
@@ -27,7 +27,7 @@ namespace Sherpa.Installer
                 ProgramOptions = OptionsParser.ParseArguments(args);
                 UrlToSite = new Uri(ProgramOptions.UrlToSite);
                 Unmanaged = !string.IsNullOrEmpty(ProgramOptions.Operations);
-                Log.Debug(string.Format("Sherpa started with the following options - URL: {0}, userName: {1}, configPath: {2}, spo: {3}, unmanaged: {4}", 
+                Log.Debug(string.Format("Sherpa started with the following options - URL: {0}, userName: {1}, configPath: {2}, spo: {3}, unmanaged: {4}",
                     ProgramOptions.UrlToSite,
                     ProgramOptions.UserName,
                     ProgramOptions.RootPath,
@@ -110,6 +110,7 @@ namespace Sherpa.Installer
             Console.WriteLine("Press 8 to import list data");
             Console.WriteLine("Press 20 to DELETE all sites (except root site)");
             Console.WriteLine("Press 21 to DELETE all custom site columns and content types");
+            Console.WriteLine("Press 30 to add the templates to the cts");
             Console.WriteLine("Press 666 to start developer mode: Continuous file upload");
             Console.WriteLine("Press 0 to exit application");
             Console.ForegroundColor = ConsoleColor.Yellow;

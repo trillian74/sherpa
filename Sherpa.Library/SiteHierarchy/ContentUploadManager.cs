@@ -1,20 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Xml;
-using System.Xml.Linq;
-using System.Xml.XPath;
+﻿using Flurl;
 using log4net;
 using Microsoft.SharePoint.Client;
 using Microsoft.SharePoint.Client.WebParts;
 using Newtonsoft.Json.Linq;
 using Sherpa.Library.SiteHierarchy.Model;
-using Flurl;
-using File = Microsoft.SharePoint.Client.File;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Xml;
+using System.Xml.Linq;
+using System.Xml.XPath;
+using File = Microsoft.SharePoint.Client.File;
 
 namespace Sherpa.Library.SiteHierarchy
 {
@@ -24,10 +24,12 @@ namespace Sherpa.Library.SiteHierarchy
         private static Dictionary<string, DateTime> LastUpload = new Dictionary<string, DateTime>();
 
         private readonly string _contentDirectoryPath;
+
         public ContentUploadManager(string rootConfigurationPath)
         {
             _contentDirectoryPath = rootConfigurationPath;
         }
+
         public void UploadFilesInFolder(ClientContext context, Web web, List<ShContentFolder> contentFolders, bool incrementalUpload)
         {
             foreach (ShContentFolder folder in contentFolders)
@@ -57,9 +59,9 @@ namespace Sherpa.Library.SiteHierarchy
                 context.Load(rootFolder);
                 context.ExecuteQuery();
 
-
-                uploadTargetFolder = Url.Combine(listUrl, contentFolder.FolderUrl);                
-            } else if (!string.IsNullOrEmpty(contentFolder.ListName)) 
+                uploadTargetFolder = Url.Combine(listUrl, contentFolder.FolderUrl);
+            }
+            else if (!string.IsNullOrEmpty(contentFolder.ListName))
             {
                 var assetLibrary = web.Lists.GetByTitle(contentFolder.ListName);
                 context.Load(assetLibrary, l => l.Title, l => l.RootFolder);
@@ -72,7 +74,7 @@ namespace Sherpa.Library.SiteHierarchy
                 Log.ErrorFormat("You need to specify either ListName or ListUrl for the Content Folder {0}", contentFolder.FolderName);
                 return;
             }
-
+            //OfficeDevPnP.Core.WebAPI..
             var configRootFolder = Path.Combine(_contentDirectoryPath, contentFolder.FolderName);
 
             EnsureTargetFolder(context, web, rootFolder.ServerRelativeUrl, contentFolder.FolderUrl, uploadTargetFolder);
@@ -101,7 +103,7 @@ namespace Sherpa.Library.SiteHierarchy
 
             if (incrementalUpload)
             {
-                files = files.Where(f =>!LastUpload.ContainsKey(contentFolder.FolderName) || new FileInfo(f).LastWriteTimeUtc > LastUpload[contentFolder.FolderName]).ToList();
+                files = files.Where(f => !LastUpload.ContainsKey(contentFolder.FolderName) || new FileInfo(f).LastWriteTimeUtc > LastUpload[contentFolder.FolderName]).ToList();
             }
 
             int filesUploaded = 0;
@@ -129,7 +131,6 @@ namespace Sherpa.Library.SiteHierarchy
             {
                 LastUpload.Add(contentFolder.FolderName, DateTime.UtcNow);
             }
-
         }
 
         private static void EnsureAllContentFolders(ClientContext context, Web web, string configRootFolder,
@@ -196,18 +197,18 @@ namespace Sherpa.Library.SiteHierarchy
 
                 context.Load(uploadFile);
                 context.ExecuteQuery();
-
             }
             var reloadedFile = web.GetFileByServerRelativeUrl(fileUrl);
             context.Load(reloadedFile);
             context.ExecuteQuery();
 
-
             ApplyFileProperties(context, fileProperties, reloadedFile);
 
-            try {
+            try
+            {
                 reloadedFile.PublishFileToLevel(FileLevel.Published);
-            } catch
+            }
+            catch
             {
                 Log.Warn("Couldn't publish file " + fileUrl);
             }
@@ -221,7 +222,7 @@ namespace Sherpa.Library.SiteHierarchy
                 Overwrite = true,
                 Content = System.IO.File.ReadAllBytes(filePath),
             };
-            
+
             if (fileProperties != null)
             {
                 if (fileProperties.ReplaceTokensInTextFile)
@@ -232,19 +233,19 @@ namespace Sherpa.Library.SiteHierarchy
                     fileCreationInfo.Content = Encoding.UTF8.GetBytes(fileContents);
                 }
             }
-            
 
             return fileCreationInfo;
         }
+
         private string GetFileUrl(string uploadTargetFolder, string pathToFileFromRootFolder, ShFileProperties fileProperties)
         {
             var fileUrl = Url.Combine(uploadTargetFolder, pathToFileFromRootFolder);
-            
+
             if (fileProperties != null)
             {
                 fileUrl = Url.Combine(uploadTargetFolder, fileProperties.Url);
             }
-            
+
             return fileUrl;
         }
 
@@ -259,7 +260,7 @@ namespace Sherpa.Library.SiteHierarchy
                 }
                 uploadFile.SetFileProperties(filePropertiesWithTokensReplaced);
 
-                if (uploadFile.Name.ToLower().EndsWith(".aspx")) 
+                if (uploadFile.Name.ToLower().EndsWith(".aspx"))
                     AddWebParts(context, uploadFile, fileProperties.WebParts, fileProperties.ReplaceWebParts);
                 context.ExecuteQuery();
             }
@@ -268,7 +269,7 @@ namespace Sherpa.Library.SiteHierarchy
         public static string ReplaceTokensInText(string valueWithTokens, ClientContext context)
         {
             //Check if we have the context info we need, in which case we don't want to ExecuteQuery
-            if(context.Site == null || context.Web == null)
+            if (context.Site == null || context.Web == null)
             {
                 context.Load(context.Site, site => site.ServerRelativeUrl);
                 context.Load(context.Web, web => web.ServerRelativeUrl, web => web.Language);
@@ -277,7 +278,7 @@ namespace Sherpa.Library.SiteHierarchy
 
             var siteCollectionUrl = context.Site.ServerRelativeUrl == "/" ? string.Empty : context.Site.ServerRelativeUrl;
             var webUrl = context.Web.ServerRelativeUrl == "/" ? string.Empty : context.Web.ServerRelativeUrl;
-            
+
             return valueWithTokens
                 .Replace("~SiteCollection", siteCollectionUrl)
                 .Replace("~sitecollection", siteCollectionUrl)
@@ -339,7 +340,7 @@ namespace Sherpa.Library.SiteHierarchy
             }
         }
 
-        private string  ReplaceWebPartPropertyOverrides(ClientContext context, ShWebPartReference webPart, string webPartcontent)
+        private string ReplaceWebPartPropertyOverrides(ClientContext context, ShWebPartReference webPart, string webPartcontent)
         {
             XmlReader reader = XmlReader.Create(new StringReader(webPartcontent));
             XElement doc = XElement.Load(reader);
@@ -358,10 +359,10 @@ namespace Sherpa.Library.SiteHierarchy
             return doc.ToString();
         }
 
-        public static void SetPropertyValueInXmlDocument(XElement doc, string propertyName, string value, string jsonPropertyName = null)
+        public static void SetPropertyValueInXmlDocument(XElement doc, string propertyName, string value, string jsonPropertyName = null)
         {
-            var element = doc.XPathSelectElement(".//*[local-name() = '" + propertyName + "']") ??
-            doc.XPathSelectElement(".//*[local-name() = 'property' and @name='" + propertyName + "']");
+            var element = doc.XPathSelectElement(".//*[local-name() = '" + propertyName + "']") ??
+            doc.XPathSelectElement(".//*[local-name() = 'property' and @name='" + propertyName + "']");
 
             if (element != null)
             {
@@ -385,5 +386,5 @@ namespace Sherpa.Library.SiteHierarchy
                 Log.Error("Could not find web part element " + propertyName);
             }
         }
-    }
+    }
 }
