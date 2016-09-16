@@ -100,7 +100,7 @@ namespace Sherpa.Library.ContentTypes
             ClientContext.ExecuteQuery();
 
             // Load the local template document
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, configContentType.Template.FileName);
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates", configContentType.Template.FileName);
             string fileName = System.IO.Path.GetFileName(path);
             byte[] filecontent = System.IO.File.ReadAllBytes(path);
 
