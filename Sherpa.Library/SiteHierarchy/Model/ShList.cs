@@ -6,8 +6,10 @@ namespace Sherpa.Library.SiteHierarchy.Model
     {
         public string Title { get; set; }
         public string Url { get; set; }
+
         //http://techtrainingnotes.blogspot.no/2008/01/sharepoint-registrationid-list-template.html
         public int TemplateType { get; set; }
+
         public bool? VersioningEnabled { get; set; }
         public bool? OnQuickLaunch { get; set; }
         public bool? Hidden { get; set; }

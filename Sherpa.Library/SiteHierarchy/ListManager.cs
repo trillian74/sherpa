@@ -1,16 +1,17 @@
-﻿using System;
+﻿using log4net;
+using Microsoft.SharePoint.Client;
+using Sherpa.Library.SiteHierarchy.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using log4net;
-using Microsoft.SharePoint.Client;
-using Sherpa.Library.SiteHierarchy.Model;
 
 namespace Sherpa.Library.SiteHierarchy
 {
     public class ListManager
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         public void CreateLists(ClientContext context, Web web, List<ShList> listConfig)
         {
             foreach (ShList list in listConfig)
@@ -18,7 +19,7 @@ namespace Sherpa.Library.SiteHierarchy
                 SetupList(context, web, list);
             }
         }
-        
+
         public void SetupList(ClientContext context, Web web, ShList listConfig)
         {
             var listCollection = web.Lists;
@@ -44,11 +45,10 @@ namespace Sherpa.Library.SiteHierarchy
             SetupEventReceiversOfList(context, setupList, listConfig);
         }
 
-
-
         private void SetupEventReceiversOfList(ClientContext context, List setupList, ShList listConfig)
         {
-            if (listConfig.AddMetadataDefaultsReceiver) {
+            if (listConfig.AddMetadataDefaultsReceiver)
+            {
                 var metadataDefaultsEventReceiver = new EventReceiverDefinitionCreationInformation
                 {
                     ReceiverName = "LocationBasedMetadataDefaultsReceiver ItemAdded",
@@ -63,7 +63,8 @@ namespace Sherpa.Library.SiteHierarchy
                 {
                     Log.DebugFormat("Adding Metadata Event Receiver to list {0}", listConfig.Title);
                     setupList.EventReceivers.Add(metadataDefaultsEventReceiver);
-                } else
+                }
+                else
                 {
                     Log.DebugFormat("Metadata Event Receiver already added to list {0}", listConfig.Title);
                 }
@@ -167,6 +168,7 @@ namespace Sherpa.Library.SiteHierarchy
                         }
                     }
                     break;
+
                 case "Root":
                     {
                         switch (assGroup.Type)
@@ -189,7 +191,6 @@ namespace Sherpa.Library.SiteHierarchy
             }
             return null;
         }
-
 
         private void SetupContentTypesOfList(ClientContext context, List list, ShList listConfig)
         {
@@ -218,7 +219,7 @@ namespace Sherpa.Library.SiteHierarchy
                         var rootContenttype = rootWebContentTypes.FirstOrDefault(ct => ct.Name == configContentType);
                         if (rootContenttype != null)
                         {
-                           // listContentTypes.AddExistingContentType(rootContenttype);
+                            // listContentTypes.AddExistingContentType(rootContenttype);
                             contentTypesToAdd.Add(rootContenttype);
                         }
                     }
@@ -228,9 +229,9 @@ namespace Sherpa.Library.SiteHierarchy
                 {
                     listContentTypes.AddExistingContentType(contentType);
                 }
-                
+
                 context.Load(listContentTypes);
-                context.LoadQuery( listContentTypes.Include(ct => ct.Name) );
+                context.LoadQuery(listContentTypes.Include(ct => ct.Name));
                 context.ExecuteQuery();
 
                 if (!listConfig.RemoveExisitingContentTypes) return;
@@ -255,9 +256,8 @@ namespace Sherpa.Library.SiteHierarchy
                 }
                 catch (Exception)
                 {
-                    Log.Info("Could not delete ContentTypes from list "+list.RootFolder.ServerRelativeUrl);
+                    Log.Info("Could not delete ContentTypes from list " + list.RootFolder.ServerRelativeUrl);
                 }
-                
             }
         }
 
@@ -276,7 +276,7 @@ namespace Sherpa.Library.SiteHierarchy
             }
             else if (!string.IsNullOrEmpty(view.Url))
             {
-                context.Load(list, x=>x.ParentWebUrl);
+                context.Load(list, x => x.ParentWebUrl);
                 context.Load(list, x => x.ParentWeb);
                 context.ExecuteQuery();
 
@@ -297,7 +297,7 @@ namespace Sherpa.Library.SiteHierarchy
                 setupView.JSLink = view.JSLink;
                 setupView.ViewQuery = view.Query;
                 setupView.RowLimit = view.RowLimit;
-                
+
                 setupView.Update();
                 if (!string.IsNullOrEmpty(view.Url))
                 {
